@@ -8,7 +8,7 @@ namespace MailCalendar.classes
         public string FirstName { get; set; }
         public string LastName { get; }
         public string Email { get; }
-        public Dictionary<Guid, bool> Attendance { get; private set; }
+        public Dictionary<string, bool> Attendance { get; private set; }
 
 
         public Person(string firstName, string lastName, string email)
@@ -16,10 +16,11 @@ namespace MailCalendar.classes
             FirstName = firstName;
             LastName = lastName;
             Email = email;
+            Attendance = new Dictionary<string, bool>();
         }
 
 
-        public void SetAttendance(Guid id, bool isAttending)
+        public void SetAttendance(string id, bool isAttending)
         {
             if (!Attendance.ContainsKey(id))
             {   
