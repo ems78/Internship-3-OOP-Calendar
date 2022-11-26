@@ -11,8 +11,8 @@ namespace MailCalendar.classes
         public string Location { get; private set; }
         public DateTime DateTimeOfBeginning { get; private set; }
         public DateTime DateTimeOfEnding { get; private set; }
-        public Dictionary<string, string> EmailList { get; private set; }
-        public Dictionary<string, string> NotAttendingList { get; private set; }
+        //public Dictionary<string, string> EmailList { get; private set; }
+        public Dictionary<string, bool> EmailList { get; private set; }
             
 
         public Event(string name, string location, DateTime dateTimeOfBeginning, DateTime dateTimeOfEnding)
@@ -22,7 +22,7 @@ namespace MailCalendar.classes
             Location = location;
             DateTimeOfBeginning = dateTimeOfBeginning;
             DateTimeOfEnding = dateTimeOfEnding;
-            EmailList = new Dictionary<string, string>();
+            EmailList = new Dictionary<string,  bool>();
         }
 
 
@@ -32,23 +32,22 @@ namespace MailCalendar.classes
             {
                 return false;
             }
-            EmailList.Add(newEmail, nameSurname);
+            EmailList.Add(newEmail, true);
             return true;
         }
 
 
-        public string NotAttending(string emails)
+        public string SetAbsentees(string emails)
         {
             string wrongInput = "";
             foreach (var person in emails.Split(' '))
             {
                 if (EmailList.ContainsKey(person))
                 {
-                    NotAttendingList.Add(person, EmailList[person]);
-                    EmailList.Remove(person);
+                    EmailList[person] = false;
                     continue;
                 }
-                wrongInput += $"{person} ";
+                wrongInput += $"{person}, ";
             }
             return wrongInput;
         }
@@ -95,13 +94,19 @@ namespace MailCalendar.classes
             {
                 foreach (var email in EmailList)
                 {
-                    stringBuilder.Append($"{email.Key} ");
+                    if (email.Value)
+                    {
+                        stringBuilder.Append($"{email.Key}, ");
+                    }                    
                 }
                 return stringBuilder.ToString();
             }
-            foreach (var email in NotAttendingList)
+            foreach (var email in EmailList)
             {
-                stringBuilder.Append($"{email.Key} ");
+                if (!email.Value)
+                {
+                    stringBuilder.Append($"{email.Key}, ");
+                }                
             }
             return stringBuilder.ToString();
         }
