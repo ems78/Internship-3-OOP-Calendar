@@ -7,7 +7,7 @@ namespace MailCalendar
 {
     public class Program
     {
-        static void MainMenu(Dictionary<string, List<string>> MenuOptions, Hashtable tableOfEvents, Dictionary<string, Person> people)
+        static void MainMenu(Dictionary<string, List<string>> MenuOptions, EventTable tableOfEvents, Dictionary<string, Person> people)
         {
             while (true)
             {
@@ -23,28 +23,28 @@ namespace MailCalendar
                     case 1:  // print active events
                         Console.Clear();
                         Console.WriteLine("\tActive events");
-                        PrintLine();
+                        PrintHelper.PrintLine();
                         ActiveEvents(MenuOptions, tableOfEvents, people);
                         break;
 
                     case 2:  // print upcoming evetns
                         Console.Clear();
                         Console.WriteLine("\tUpcoming events");
-                        PrintLine();
+                        PrintHelper.PrintLine();
                         UpcomingEvents(MenuOptions, tableOfEvents, people);
                         break;
 
                     case 3:  // print past events
                         Console.Clear();
                         Console.WriteLine("\tPast events");
-                        PrintLine();
+                        PrintHelper.PrintLine();
                         PastEvents(MenuOptions, tableOfEvents, people);
                         break;
 
                     case 4:  // create new event
                         Console.Clear();
                         Console.WriteLine("\tCreate a new event");
-                        PrintLine();
+                        PrintHelper.PrintLine();
                         CreateEvent(tableOfEvents, people);
                         break;
 
@@ -58,29 +58,13 @@ namespace MailCalendar
             }
         }
 
-
-        static void ActiveEvents(Dictionary<string, List<string>> MenuOptions, Hashtable tableOfEvents, Dictionary<string, Person> people)
+        
+        static void ActiveEvents(Dictionary<string, List<string>> MenuOptions, EventTable tableOfEvents, Dictionary<string, Person> people)
         {
-            foreach (Event element in tableOfEvents.Values)
-            {
-                if (element.GetStatus() == "active")
-                {
-                    Console.WriteLine($"ID: {element.Id}\nName: {element.Name}\nLocation: {element.Location} Ends in: {element.GetDuration("active")}\n\nParticipans:");
-                    if (element.PrintAttendances(true) == "") 
-                    {
-                        Console.WriteLine("-- No paticipants\n");
-                        PrintLine();
-                        continue;
-                    }
-                    string attendeeEmails = element.PrintAttendances(true); 
-                    Console.WriteLine($"{attendeeEmails}");
-                    PrintLine();
-                }
-            }
-
             while (true)
             {
-                PrintLine();
+                tableOfEvents.PrintEvents("active");
+                PrintHelper.PrintLine();
                 int i = 0;
                 foreach (var element in MenuOptions["active events submenu"])
                 {
@@ -111,15 +95,14 @@ namespace MailCalendar
             string eventIDtoCheck = Console.ReadLine();
             if (!tableOfEvents.ContainsKey(eventIDtoCheck))
             {
-                Console.Write($"No event with ID {eventIDtoCheck}\nPress any key to continue.");
-                Console.ReadKey();
+                PrintHelper.MessageAboutAction($"\nNo event with ID {eventIDtoCheck}.");
                 return;
             }
+
             Event currentEvent = (Event)tableOfEvents[eventIDtoCheck];
             if (currentEvent.GetStatus() != "active")
             {
-                Console.WriteLine("\nYou can only check attendances for active events.\nPress any key to continue.");
-                Console.ReadKey();
+                PrintHelper.MessageAboutAction("\nYou can only check attendances for active events.");
                 return;
             }
 
@@ -131,36 +114,16 @@ namespace MailCalendar
             {
                 Console.WriteLine($"\n-- These emails are not in the attendance list for this event:\n{wrongEmailList}");  
             }
-            Console.Write("\nPress any key to continue.");
-            Console.ReadKey();
+            PrintHelper.MessageAboutAction("\nDone.");
         }
 
 
-        static void UpcomingEvents(Dictionary<string, List<string>> MenuOptions, Hashtable tableOfEvents, Dictionary<string, Person> people)
+        static void UpcomingEvents(Dictionary<string, List<string>> MenuOptions, EventTable tableOfEvents, Dictionary<string, Person> people)
         {
-            foreach (Event element in tableOfEvents.Values)
-            {
-                if (element.GetStatus() == "upcoming")
-                {
-                    Console.WriteLine($"\nID: {element.Id}\nName: {element.Name}\nLocation: {element.Location} \nEnds in: {element.GetDuration("upcoming")}\n\nParticipans:");
-                    if (element.EmailList.Count is 0)
-                    {
-                        Console.WriteLine("-- No paticipants");
-                        PrintLine();
-                        continue;
-                    }
-                    string[] attendeeEmails = element.PrintAttendances(true).Split(' ');
-                    foreach (var email in attendeeEmails)
-                    {
-                        Console.WriteLine($"{email}\n");
-                    }
-                    PrintLine();
-                }
-            }
-
             while (true)
             {
-                PrintLine();
+                tableOfEvents.PrintEvents("upcoming");
+                PrintHelper.PrintLine();
                 int i = 0;
                 foreach (var element in MenuOptions["upcoming events submenu"])
                 {
@@ -188,104 +151,78 @@ namespace MailCalendar
         }
 
 
-        static void DeleteEvent(Hashtable tableOfEvents, Dictionary<string, Person> people)
+        static void DeleteEvent(EventTable tableOfEvents, Dictionary<string, Person> people)
         {
-            Console.Write("Enter ID of event you want to delete: ");
+            Console.Write("\nEnter ID of event you want to delete: ");
             string eventIDtoDelete = Console.ReadLine();
-            if (tableOfEvents.ContainsKey(eventIDtoDelete))
+
+            if (!tableOfEvents.ContainsKey(eventIDtoDelete))
             {
-                Event eventToDelete = (Event)tableOfEvents[eventIDtoDelete];
-                if (eventToDelete.GetStatus() != "upcoming")
-                {
-                    Console.Write("You can only delete an upcoming event.\nPress any key to continue.");
-                    Console.ReadKey();
-                    return;
-                }
-
-                if (!UserConfirmation("delete this event"))
-                {
-                    return;
-                }
-
-                foreach (string email in eventToDelete.EmailList.Keys)  // brisati podatke o prisutnosti na tom eventu
-                {
-                    people[email].Attendance.Remove(eventIDtoDelete);
-                }
-                tableOfEvents.Remove(eventIDtoDelete);  // izbrisat event
-                Console.WriteLine("Deletion successful.\nPress any key to continue.");
-                Console.ReadKey();
+                PrintHelper.MessageAboutAction("\nID doesn't match any event.");
                 return;
             }
-            Console.WriteLine("ID doesn't match any event.\nPress any key to continue.");
-            Console.ReadKey();
+
+            Event eventToDelete = (Event)tableOfEvents[eventIDtoDelete];
+            
+            if (eventToDelete.GetStatus() != "upcoming")
+            {
+                PrintHelper.MessageAboutAction("\nYou can only delete an upcoming event.");
+                return;
+            }
+
+            if (!UserConfirmation("delete this event"))
+            {
+                return;
+            }
+
+            foreach (string email in eventToDelete.EmailList.Keys)  // brisati podatke o prisutnosti na tom eventu
+            {
+                people[email].Attendance.Remove(eventIDtoDelete);
+            }
+            tableOfEvents.Remove(eventIDtoDelete);  // izbrisat event
+            PrintHelper.MessageAboutAction("\nDeletion successful.");
+            Console.Clear();
             return;
         }
 
 
-        static void RemoveParticipants(Hashtable tableOfEvents, Dictionary<string, Person> people)
+        static void RemoveParticipants(EventTable tableOfEvents, Dictionary<string, Person> people)
         {
             Console.Write("\nEnter ID of event you want to remove people from: ");
             string eventIDtoEdit = Console.ReadLine();
-            if (tableOfEvents.ContainsKey(eventIDtoEdit))
+
+            if (!tableOfEvents.ContainsKey(eventIDtoEdit))
             {
-                Event eventToEdit = (Event)tableOfEvents[eventIDtoEdit];
-
-                Console.Write("\nEnter emails of people you want to remove from this event (separated by a whitespace): ");
-                string input = Console.ReadLine();
-
-                if (!UserConfirmation("remove these participants from the event"))
-                {
-                    return;
-                }
-
-                string[] emailsToRemove = input.Split(' ');
-                string wrongInput = "";
-                foreach (var email in emailsToRemove)
-                {
-                    if (!eventToEdit.EmailList.ContainsKey(email.Trim()))
-                    {
-                        wrongInput += $"{email}, ";
-                        continue;
-                    }
-                    eventToEdit.EmailList.Remove(email);  
-                    people[email].Attendance.Remove(eventIDtoEdit);
-                }
-                if (wrongInput.Length > 0)
-                {
-                    Console.WriteLine($"\nEmails that are not on the event participant list: {wrongInput}");
-                }
-                Console.WriteLine("Successful.\nPress any key to continue.");
-                Console.ReadKey();
+                PrintHelper.MessageAboutAction("\nID doesn't match any event.");
                 return;
             }
+
+            Event eventToEdit = (Event)tableOfEvents[eventIDtoEdit];
+            Console.Write("\nEnter emails of people you want to remove from this event (separated by a whitespace): ");
+            string input = Console.ReadLine();
+
+            if (input.Length == 0 || !UserConfirmation("remove these participants from the event"))
+            {
+                return;
+            }
+
+            string wrongInput = eventToEdit.RemoveParticipants(eventToEdit, input, people);
+            if (wrongInput.Length > 0)
+            {
+                Console.WriteLine($"\nEmails that are not on the event participant list: {wrongInput}");
+            }
+            PrintHelper.MessageAboutAction("\nSuccess.");
+            return;
         }
 
 
-        static void PastEvents(Dictionary<string, List<string>> MenuOptions, Hashtable tableOfEvents, Dictionary<string, Person> people)
+        static void PastEvents(Dictionary<string, List<string>> MenuOptions, EventTable tableOfEvents, Dictionary<string, Person> people)
         {
-            foreach (Event element in tableOfEvents.Values)
-            {
-                if (element.GetStatus() == "past")
-                {
-                    Console.WriteLine($"\nID: {element.Id}\nName: {element.Name}\nLocation: {element.Location}\nEnded: {element.GetDuration("past")}\n\nParticipans:");
-                    if (element.EmailList.Count is 0)
-                    {
-                        Console.WriteLine("-- No paticipants");
-                        continue;
-                    }
-                    string[] atendeeEmails = element.PrintAttendances(true).Split(' ');
-                    foreach (var email in atendeeEmails)
-                    {
-                        Console.WriteLine($"{email}\n");
-                    }
-                    string absentAtendeeEmails = element.PrintAttendances(false);
-                    Console.WriteLine($"Absent participants:\n{absentAtendeeEmails}");
-                }
-            }
+            tableOfEvents.PrintEvents("past");
 
             while (true)
             {
-                PrintLine();
+                PrintHelper.PrintLine();
                 int i = 0;
                 foreach (var element in MenuOptions["past events submenu"])
                 {
@@ -318,6 +255,11 @@ namespace MailCalendar
             {
                 Console.Write("\nEnter the starting date of the event (YYYY-MM-DD): ");
                 string[] dateInput = Console.ReadLine().Split('-');
+                if (dateInput.Length < 3)
+                {
+                    Console.WriteLine("Incorrect date input.");
+                    continue;
+                }
                 if (int.TryParse(dateInput[0], out int year) && int.TryParse(dateInput[1], out int month) && int.TryParse(dateInput[2], out int day))
                 {
                     startingDate = new DateTime(year, month, day);
@@ -328,15 +270,20 @@ namespace MailCalendar
                     }
                     break;
                 }
-                Console.WriteLine("Incorrect date input.");
+                Console.WriteLine("Incorrect date format.");
             }
 
             DateTime endingDate;
             while (true)
             {
                 Console.Write("\nEnter the ending date of the event (YYYY-MM-DD): ");
-                string[] dateInput2 = Console.ReadLine().Split('-');
-                if (int.TryParse(dateInput2[0], out int year) && int.TryParse(dateInput2[1], out int month) && int.TryParse(dateInput2[2], out int day))
+                string[] dateInput = Console.ReadLine().Split('-');
+                if (dateInput.Length < 3)
+                {
+                    Console.WriteLine("Incorrect date input.");
+                    continue;
+                }
+                if (int.TryParse(dateInput[0], out int year) && int.TryParse(dateInput[1], out int month) && int.TryParse(dateInput[2], out int day))
                 {
                     endingDate = new DateTime(year, month, day);
                     if (endingDate < startingDate)
@@ -346,7 +293,7 @@ namespace MailCalendar
                     }
                     break;
                 }
-                Console.WriteLine("Incorrect date input.");
+                Console.WriteLine("Incorrect date format.");
             }
 
             Event newEvent = new Event(eventName, eventLocation, startingDate, endingDate);
@@ -404,8 +351,7 @@ namespace MailCalendar
             if (UserConfirmation("create new event"))
             {
                 tableOfEvents.Add(newEventId, newEvent);
-                Console.Write("\nEvent created successfully.\nPress any key to continue.");
-                Console.ReadKey();
+                PrintHelper.MessageAboutAction("\nEvent created successfully.");
             }
         }
 
@@ -434,34 +380,37 @@ namespace MailCalendar
 
         static void Main(string[] args)
         {
-            
             List<Event> eventList = new List<Event>
             {
                 new Event("Skate Contest", "Koteks", new DateTime(2022, 12, 11, 15, 30, 00), new DateTime(2022, 12, 11, 20, 00, 00)),
-                new Event("Graffiti jam", "Koteks", new DateTime(2022, 12, 11, 11, 30, 00), new DateTime(2022, 12, 11, 14, 00, 00)),
+                new Event("Graffiti jam", "Koteks", new DateTime(2022, 11, 27, 14, 30, 00), new DateTime(2022, 12, 11, 00, 00, 00)),
                 new Event("Blood Incantation concert", "Tvornica Kulture, Zagreb", new DateTime(2023, 2, 11, 21, 45, 00), new DateTime(2023, 2, 12, 3, 00, 00)),
-                new Event("Discrete math and combinatorics midterm", "PMFST amfiteatar B0-2", new DateTime(2022, 11, 26, 11, 00, 00), new DateTime(2022, 11, 27, 13, 00, 00)),
-                new Event("Study session", "Sveučilišna knjižnica Split", new DateTime(2022, 11, 23, 14, 30, 00), new DateTime(2022, 11, 23, 21, 25, 00)) 
+                new Event("Discrete math and combinatorics midterm", "PMFST amfiteatar B0-2", new DateTime(2022, 11, 26, 11, 00, 00), new DateTime(2022, 11, 26, 13, 00, 00)),
+                new Event("Study session", "Sveučilišna knjižnica Split", new DateTime(2022, 11, 27, 18, 20, 00), new DateTime(2022, 11, 27, 21, 00, 00)) 
             };
 
-            Hashtable tableOfEvents = new Hashtable();
-            foreach (var item in eventList)
-            {
-                tableOfEvents.Add(item.Id.ToString(), item);
-            }
+            EventTable tableOfEvents = new EventTable(eventList);
 
             Dictionary<string, Person> people = new Dictionary<string, Person>()
             {
                 {"hideyokids@gmail.com", new Person("Anakin", "Skywalker", "hideyokids@gmail.com") },
                 { "reckless1111@gmail.com", new Person("Leroy", "Jenkins", "reckless1111@gmail.com") },
                 { "hiryeong@gmail.com", new Person("Ryeong", "Hi", "hiryeong@gmail.com") },
-                { "birdboxgirl@hotmail.com", new Person("Sandra", "Bulock", "birdboxgirl@hotmail.com")}
+                { "birdboxgirl@hotmail.com", new Person("Sandra", "Bulock", "birdboxgirl@hotmail.com")},
+                { "aaaa44455@gmail.com", new Person("Andre", "Andreas", "aaaa44455@gmail.com")},
+                { "galadriex@gmail.com", new Person("Alex", "Gala", "galadriex@gmail.com")},
+                { "gigachad@hotmail.com", new Person("Kalei", "Renay", "gigachad@hotmail.com")},
+                { "fakemail@gmail.com", new Person("Fake", "Name", "fakemail@gmail.com")},
+                { "orange@gmail.com", new Person("Ori", "Ange", "orange@gmail.com")},
+                { "whiterunhold@gmail.com", new Person("Balgruuf", "the Greater", "whiterunhold@gmail.com")}
             };
 
             people["hideyokids@gmail.com"].SetAttendance(eventList[0].Id.ToString(), true);
-            eventList[4].EmailList.Add("hideyokids@gmail.com", true);
-            eventList[3].EmailList.Add("hiryeong@gmail.com", true);
-
+            eventList[0].AddParticipantEmail(new List<Person>() {people["hideyokids@gmail.com"], people["whiterunhold@gmail.com"] });
+            eventList[1].AddParticipantEmail(new List<Person>() {people["fakemail@gmail.com"], people["orange@gmail.com"] });
+            eventList[2].AddParticipantEmail(new List<Person>() {people["gigachad@hotmail.com"], people["whiterunhold@gmail.com"], people["aaaa44455@gmail.com"] });
+            eventList[3].AddParticipantEmail(new List<Person>() {people["reckless1111@gmail.com"], people["hideyokids@gmail.com"] });
+            eventList[4].AddParticipantEmail(new List<Person>() {people["galadriex@gmail.com"], people["whiterunhold@gmail.com"], people["hiryeong@gmail.com"] });
 
             Dictionary<string, List<string>> menuOptions = new Dictionary<string, List<string>>()
             {
@@ -474,11 +423,6 @@ namespace MailCalendar
             MainMenu(menuOptions, tableOfEvents, people);
 
             Console.ReadKey();
-        }
-
-        static void PrintLine()
-        {
-            Console.WriteLine("------------------------------------------\n");
         }
     }
 }

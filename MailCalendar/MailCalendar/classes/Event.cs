@@ -11,7 +11,6 @@ namespace MailCalendar.classes
         public string Location { get; private set; }
         public DateTime DateTimeOfBeginning { get; private set; }
         public DateTime DateTimeOfEnding { get; private set; }
-        //public Dictionary<string, string> EmailList { get; private set; }
         public Dictionary<string, bool> EmailList { get; private set; }
             
 
@@ -26,14 +25,16 @@ namespace MailCalendar.classes
         }
 
 
-        public bool AddParticipantEmail(string newEmail, string nameSurname)
+        public void AddParticipantEmail(List<Person> newParticipants)
         {
-            if (EmailList.ContainsKey(newEmail))
+            foreach (var person in newParticipants)
             {
-                return false;
+                if (EmailList.ContainsKey(person.Email))
+                {   
+                    continue;
+                }
+                EmailList.Add(person.Email, true);
             }
-            EmailList.Add(newEmail, true);
-            return true;
         }
 
 
@@ -109,6 +110,23 @@ namespace MailCalendar.classes
                 }                
             }
             return stringBuilder.ToString();
+        }
+
+        public string RemoveParticipants(Event eventToEdit, string emailList, Dictionary<string, Person> people)
+        {
+            string[] emailsToRemove = emailList.Split(' ');
+            string wrongInput = "";
+            foreach (var email in emailsToRemove)
+            {
+                if (!eventToEdit.EmailList.ContainsKey(email.Trim()))
+                {
+                    wrongInput += $"{email}, ";
+                    continue;
+                }
+                eventToEdit.EmailList.Remove(email);
+                people[email].Attendance.Remove(eventToEdit.Id.ToString());
+            }
+            return wrongInput;
         }
     }
 }

@@ -44,7 +44,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="classes\Event.cs" />
+    <Compile Include="classes\EventTable.cs" />
     <Compile Include="classes\Person.cs" />
+    <Compile Include="classes\PrintHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

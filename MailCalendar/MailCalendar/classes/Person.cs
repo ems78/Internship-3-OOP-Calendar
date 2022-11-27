@@ -29,11 +29,5 @@ namespace MailCalendar.classes
             }
             Attendance[id] = isAttending;
         }
-
-        
-        public string GetNameSurname()
-        {
-            return $"{FirstName} {LastName}";
-        }
     }
 }
